@@ -14,20 +14,21 @@ class AppKillWatcherService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onCreate() {
-        super.onCreate()
-        LogStore.add("Service: onCreate đã gọi.")
-    }
-
-    // Chuyển việc khởi chạy dịch vụ nền vào onStartCommand để tránh nghẽn luồng chính (gây ANR)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        LogStore.add("Service: onStartCommand hoạt động.")
-        startMyForeground()
+        // Đưa việc khởi tạo ra luồng riêng biệt để tránh hoàn toàn hiện tượng nghẽn luồng chính (ANR) khi chơi game nặng
+        Thread {
+            try {
+                startMyForeground()
+            } catch (e: Exception) {
+                LogStore.add("Lỗi Service: ${e.message}")
+            }
+        }.start()
+
         return START_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        LogStore.add("CẢNH BÁO: App bị vuốt khỏi đa nhiệm (Recents)!")
+        LogStore.add("CẢNH BÁO: App bị vuốt khỏi đa nhiệm!")
         super.onTaskRemoved(rootIntent)
     }
 
@@ -37,33 +38,28 @@ class AppKillWatcherService : Service() {
     }
 
     private fun startMyForeground() {
-        try {
-            val channelId = "kill_tracker_channel"
-            val notificationManager = getSystemService(NotificationManager::class.java)
+        val channelId = "kill_tracker_channel"
+        val notificationManager = getSystemService(NotificationManager::class.java)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val channel = NotificationChannel(
-                    channelId,
-                    "Kill Tracker Monitor",
-                    NotificationManager.IMPORTANCE_LOW
-                )
-                notificationManager?.createNotificationChannel(channel)
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Kill Tracker Monitor",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            notificationManager?.createNotificationChannel(channel)
+        }
 
-            val notification: Notification = NotificationCompat.Builder(this, channelId)
-                .setContentTitle("Kill Tracker đang chạy")
-                .setContentText("Đang giám sát tiến trình ngầm...")
-                .setSmallIcon(android.R.drawable.ic_popup_reminder)
-                .build()
+        val notification: Notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Kill Tracker đang chạy")
+            .setContentText("Đang giám sát tiến trình ngầm...")
+            .setSmallIcon(android.R.drawable.ic_popup_reminder)
+            .build()
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE)
-            } else {
-                startForeground(1, notification)
-            }
-            LogStore.add("Foreground: Khởi chạy thành công.")
-        } catch (e: Exception) {
-            LogStore.add("Lỗi Foreground: ${e.message}")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE)
+        } else {
+            startForeground(1, notification)
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.example.killtracker
 
+import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.LinearLayout
@@ -37,12 +39,21 @@ class MainActivity : AppCompatActivity() {
         layout.addView(permissionButton)
 
         val refreshButton = Button(this).apply {
-            text = "Làm mới danh sách"
+            text = "Làm mới danh sách sự kiện"
             setOnClickListener {
                 updateLogs()
             }
         }
         layout.addView(refreshButton)
+
+        val clearButton = Button(this).apply {
+            text = "Xóa lịch sử Log riêng"
+            setOnClickListener {
+                LogStore.clear(this@MainActivity)
+                updateLogs()
+            }
+        }
+        layout.addView(clearButton)
 
         logTextView = TextView(this).apply {
             text = "Đang tải dữ liệu...\n"
@@ -57,6 +68,9 @@ class MainActivity : AppCompatActivity() {
         layout.addView(scrollView)
 
         setContentView(layout)
+
+        LogStore.add(applicationContext, "System: Tiến trình MainActivity vừa được mở/khôi phục.")
+        startTrackerService()
     }
 
     override fun onResume() {
@@ -68,19 +82,39 @@ class MainActivity : AppCompatActivity() {
     private fun updatePermissionStatus() {
         if (UsageHelper.hasPermission(this)) {
             permissionButton.text = "Đã cấp quyền (Nhấn để xem lại cài đặt)"
-            permissionButton.setBackgroundColor(Color.parseColor("#4CAF50")) // Xanh lá
+            permissionButton.setBackgroundColor(Color.parseColor("#4CAF50"))
         } else {
             permissionButton.text = "Cấp quyền Truy cập dữ liệu sử dụng"
-            permissionButton.setBackgroundColor(Color.parseColor("#FF9800")) // Cam cảnh báo
+            permissionButton.setBackgroundColor(Color.parseColor("#FF9800"))
         }
     }
 
     private fun updateLogs() {
-        val events = UsageHelper.getRecentEvents(this)
+        val usageEvents = UsageHelper.getRecentEvents(this)
+        val selfLogs = LogStore.getLogs(this)
+
         val sb = StringBuilder()
-        for (event in events) {
-            sb.append(event).append("\n\n")
+        sb.append("--- SỰ KIỆN HỆ THỐNG (USAGE STATS) ---\n")
+        for (event in usageEvents) {
+            sb.append(event).append("\n")
+        }
+        sb.append("\n--- LỊCH SỬ KILL TRACKER ---\n")
+        for (log in selfLogs) {
+            sb.append(log).append("\n")
         }
         logTextView.text = sb.toString()
+    }
+
+    private fun startTrackerService() {
+        try {
+            val intent = Intent(this, AppKillWatcherService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (e: Exception) {
+            LogStore.add(applicationContext, "Lỗi kích hoạt Service: ${e.message}")
+        }
     }
 }

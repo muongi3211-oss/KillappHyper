@@ -4,35 +4,50 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var logTextView: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Tạo giao diện đơn giản trực tiếp bằng code để tránh lỗi thiếu file XML layout
+        // Tạo giao diện chứa khung hiển thị log trực tiếp
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(50, 50, 50, 50)
+            setPadding(30, 30, 30, 30)
         }
 
         val title = TextView(this).apply {
-            text = "Kill Tracker Monitor"
-            textSize = 20f
-            setPadding(0, 0, 0, 30)
+            text = "Lịch sử giám sát Kill Tracker"
+            textSize = 18f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(0, 0, 0, 20)
         }
         layout.addView(title)
 
-        val statusText = TextView(this).apply {
-            text = "Trạng thái: Đang giám sát tiến trình ngầm của hệ thống."
+        logTextView = TextView(this).apply {
+            text = "Đang chờ sự kiện...\n"
             textSize = 14f
+            setTextColor(android.graphics.Color.DKGRAY)
         }
-        layout.addView(statusText)
+
+        val scrollView = ScrollView(this).apply {
+            addView(logTextView)
+        }
+        layout.addView(scrollView)
 
         setContentView(layout)
 
-        // Khởi động service an toàn sau khi Activity đã sẵn sàng
+        // Lắng nghe sự kiện log mới để cập nhật lên màn hình ngay lập tức
+        LogStore.onNewLog = {
+            runOnUiThread { updateLogDisplay() }
+        }
+        updateLogDisplay()
+
+        // Khởi động dịch vụ nền
         try {
             val intent = Intent(this, AppKillWatcherService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -41,7 +56,15 @@ class MainActivity : AppCompatActivity() {
                 startService(intent)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            LogStore.add("Lỗi khởi động service: ${e.message}")
         }
+    }
+
+    private fun updateLogDisplay() {
+        val sb = StringBuilder()
+        for (log in LogStore.logs) {
+            sb.append(log).append("\n\n")
+        }
+        logTextView.text = sb.toString()
     }
 }

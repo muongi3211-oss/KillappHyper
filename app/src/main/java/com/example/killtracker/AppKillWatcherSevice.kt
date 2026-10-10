@@ -14,35 +14,32 @@ import java.util.concurrent.Executors
 
 class AppKillWatcherService : Service() {
 
-    // Sử dụng SingleThreadExecutor để xử lý công việc ngầm hoàn toàn độc lập với Main Thread
     private val executor = Executors.newSingleThreadExecutor()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Đưa việc tạo Notification và khởi chạy Foreground sang luồng phụ
         executor.execute {
             try {
+                LogStore.add(applicationContext, "Service: Đang hoạt động ngầm.")
                 startMyForeground()
             } catch (e: Exception) {
                 Log.e("KillTracker", "Error in background execution: ${e.message}")
             }
         }
-        
-        // Trả về START_STICKY ngay lập tức để giải phóng Main Thread cho hệ thống
         return START_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         executor.execute {
-            LogStore.add("CẢNH BÁO: App bị vuốt khỏi đa nhiệm (Recents)!")
+            LogStore.add(applicationContext, "CẢNH BÁO: App bị vuốt khỏi đa nhiệm (Recents)!")
         }
         super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
         executor.execute {
-            LogStore.add("NGUY HIỂM: Process bị hệ thống Kill!")
+            LogStore.add(applicationContext, "NGUY HIỂM: Process bị hệ thống Kill!")
         }
         executor.shutdown()
         super.onDestroy()

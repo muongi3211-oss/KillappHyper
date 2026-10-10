@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -24,14 +25,24 @@ class MainActivity : AppCompatActivity() {
             text = "Lịch sử giám sát Kill Tracker"
             textSize = 18f
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setPadding(0, 0, 0, 20)
+            setPadding(0, 0, 0, 10)
         }
         layout.addView(title)
+
+        val clearButton = Button(this).apply {
+            text = "Xóa lịch sử Log"
+            setOnClickListener {
+                LogStore.clear(this@MainActivity)
+                updateLogDisplay()
+            }
+        }
+        layout.addView(clearButton)
 
         logTextView = TextView(this).apply {
             text = "Đang tải dữ liệu...\n"
             textSize = 14f
             setTextColor(Color.DKGRAY)
+            setPadding(0, 20, 0, 0)
         }
 
         val scrollView = ScrollView(this).apply {
@@ -41,15 +52,13 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(layout)
 
-        // Ghi nhận mốc ứng dụng vừa mở hoặc vừa được hệ thống khôi phục sau khi bị Kill
-        LogStore.add("System: Tiến trình MainActivity vừa được khởi chạy lại.")
+        // Ghi nhận mốc Activity khởi chạy lại
+        LogStore.add(applicationContext, "System: Tiến trình MainActivity vừa được mở/khôi phục.")
 
-        // Lắng nghe sự kiện ghi log mới
         LogStore.onNewLog = {
             runOnUiThread { updateLogDisplay() }
         }
 
-        // Tự động khởi chạy lại Service ngay khi Activity tải xong
         startTrackerService()
     }
 
@@ -67,16 +76,17 @@ class MainActivity : AppCompatActivity() {
                 startService(intent)
             }
         } catch (e: Exception) {
-            LogStore.add("Lỗi kích hoạt Service: ${e.message}")
+            LogStore.add(applicationContext, "Lỗi kích hoạt Service: ${e.message}")
         }
     }
 
     private fun updateLogDisplay() {
+        val logs = LogStore.getLogs(this)
         val sb = StringBuilder()
-        if (LogStore.logs.isEmpty()) {
+        if (logs.isEmpty()) {
             sb.append("Chưa có mốc sự kiện nào.")
         } else {
-            for (log in LogStore.logs) {
+            for (log in logs) {
                 sb.append(log).append("\n\n")
             }
         }

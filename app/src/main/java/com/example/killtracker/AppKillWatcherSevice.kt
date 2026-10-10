@@ -15,7 +15,7 @@ class AppKillWatcherService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Đưa việc khởi tạo ra luồng riêng biệt để tránh hoàn toàn hiện tượng nghẽn luồng chính (ANR) khi chơi game nặng
+        LogStore.add("Service: onStartCommand đang chạy ngầm.")
         Thread {
             try {
                 startMyForeground()
@@ -28,7 +28,7 @@ class AppKillWatcherService : Service() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        LogStore.add("CẢNH BÁO: App bị vuốt khỏi đa nhiệm!")
+        LogStore.add("CẢNH BÁO: App bị vuốt khỏi đa nhiệm (Recents)!")
         super.onTaskRemoved(rootIntent)
     }
 
@@ -61,5 +61,6 @@ class AppKillWatcherService : Service() {
         } else {
             startForeground(1, notification)
         }
+        LogStore.add("Foreground: Dịch vụ nền đã khởi chạy thành công.")
     }
 }

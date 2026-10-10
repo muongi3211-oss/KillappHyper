@@ -1,6 +1,9 @@
 package com.example.killtracker
 
-import android.app.*
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
@@ -13,39 +16,47 @@ class AppKillWatcherService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d("KillTracker", "Dịch vụ theo dõi đã khởi tạo: ${System.currentTimeMillis()}")
-        startForegroundService()
+        Log.d("KillTracker", "Service initialized")
+        startMyForeground()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return START_STICKY // Yêu cầu Android tự khởi chạy lại service nếu bị kill
+        return START_STICKY
     }
 
-    // Được gọi khi người dùng vuốt bỏ app khỏi Màn hình đa nhiệm
     override fun onTaskRemoved(rootIntent: Intent?) {
-        Log.w("KillTracker", "CẢNH BÁO: App vừa bị hủy khỏi danh sách Đa nhiệm (Recents) lúc: ${System.currentTimeMillis()}")
+        Log.w("KillTracker", "WARNING: App removed from Recents")
         super.onTaskRemoved(rootIntent)
     }
 
-    // Được gọi khi HyperOS diệt tiến trình này để giải phóng RAM/Pin
     override fun onDestroy() {
-        Log.e("KillTracker", "CẢNH BÁO NGUY CẤP: HyperOS đã diệt (Kill) tiến trình này lúc: ${System.currentTimeMillis()}")
+        Log.e("KillTracker", "CRITICAL: Process destroyed/killed by system")
         super.onDestroy()
     }
 
-    private fun startForegroundService() {
-        val channelId = "kill_tracker_channel"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Kill Tracker", NotificationManager.IMPORTANCE_LOW)
-            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+    private fun startMyForeground() {
+        try {
+            val channelId = "kill_tracker_channel"
+            val notificationManager = getSystemService(NotificationManager::class.java)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    channelId,
+                    "Kill Tracker Monitor",
+                    NotificationManager.IMPORTANCE_LOW
+                )
+                notificationManager?.createNotificationChannel(channel)
+            }
+
+            val notification: Notification = NotificationCompat.Builder(this, channelId)
+                .setContentTitle("Kill Tracker đang chạy")
+                .setContentText("Đang giám sát tiến trình ngầm...")
+                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .build()
+
+            startForeground(1, notification)
+        } catch (e: Exception) {
+            Log.e("KillTracker", "Error starting foreground: ${e.message}")
         }
-
-        val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Kill Tracker đang chạy")
-            .setContentText("Đang giám sát cơ chế kill app của HyperOS...")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .build()
-
-        startForeground(1, notification)
     }
 }

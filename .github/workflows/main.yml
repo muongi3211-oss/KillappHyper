@@ -67,4 +67,3 @@ jobs:
       with:
         name: HyperOS-Kill-Tracker-APK
         path: app/build/outputs/apk/debug/app-debug.apk
-        

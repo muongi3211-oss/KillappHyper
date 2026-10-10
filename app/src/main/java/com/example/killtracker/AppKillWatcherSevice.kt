@@ -16,21 +16,23 @@ class AppKillWatcherService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        LogStore.add("Service: Đã khởi động và bắt đầu giám sát.")
-        startMyForeground()
+        LogStore.add("Service: onCreate đã gọi.")
     }
 
+    // Chuyển việc khởi chạy dịch vụ nền vào onStartCommand để tránh nghẽn luồng chính (gây ANR)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        LogStore.add("Service: onStartCommand hoạt động.")
+        startMyForeground()
         return START_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        LogStore.add("CẢNH BÁO: App bị vuốt khỏi màn hình gần đây (Recents)!")
+        LogStore.add("CẢNH BÁO: App bị vuốt khỏi đa nhiệm (Recents)!")
         super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
-        LogStore.add("NGUY HIỂM: Process bị hệ thống hoặc người dùng Kill!")
+        LogStore.add("NGUY HIỂM: Process bị hệ thống Kill!")
         super.onDestroy()
     }
 
@@ -54,13 +56,12 @@ class AppKillWatcherService : Service() {
                 .setSmallIcon(android.R.drawable.ic_popup_reminder)
                 .build()
 
-            // Truyền chuẩn loại service tương thích Android 14+ (API 34)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE)
             } else {
                 startForeground(1, notification)
             }
-            LogStore.add("Foreground: Khởi chạy dịch vụ nền thành công.")
+            LogStore.add("Foreground: Khởi chạy thành công.")
         } catch (e: Exception) {
             LogStore.add("Lỗi Foreground: ${e.message}")
         }

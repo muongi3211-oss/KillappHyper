@@ -1,25 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SHORT_SERVICE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" 
-    tools:ignore="ProtectedPermissions" />
+        tools:ignore="ProtectedPermissions" />
 
-    
     <application
         android:allowBackup="true"
-        android:icon="@android:drawable/ic_dialog_info"
+        android:icon="@mipmap/ic_launcher"
         android:label="Kill Tracker"
-        android:theme="@style/Theme.AppCompat.Light">
-
-        <service
-            android:name=".AppKillWatcherService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="shortService" />
-
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -28,5 +21,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".AppKillWatcherService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="shortService" />
     </application>
+
 </manifest>

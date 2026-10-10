@@ -7,7 +7,6 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import androidx.core.app.NotificationCompat
 
 class AppKillWatcherService : Service() {
@@ -16,7 +15,7 @@ class AppKillWatcherService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d("KillTracker", "Service initialized")
+        LogStore.add("Service: Đã khởi động và bắt đầu giám sát.")
         startMyForeground()
     }
 
@@ -25,12 +24,12 @@ class AppKillWatcherService : Service() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        Log.w("KillTracker", "WARNING: App removed from Recents")
+        LogStore.add("CẢNH BÁO: App bị vuốt khỏi màn hình gần đây (Recents)!")
         super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
-        Log.e("KillTracker", "CRITICAL: Process destroyed/killed by system")
+        LogStore.add("NGUY HIỂM: Process bị hệ thống hoặc người dùng Kill!")
         super.onDestroy()
     }
 
@@ -56,7 +55,7 @@ class AppKillWatcherService : Service() {
 
             startForeground(1, notification)
         } catch (e: Exception) {
-            Log.e("KillTracker", "Error starting foreground: ${e.message}")
+            LogStore.add("Lỗi Foreground: ${e.message}")
         }
     }
 }

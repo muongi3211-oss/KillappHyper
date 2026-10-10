@@ -10,29 +10,41 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import java.util.concurrent.Executors
 
 class AppKillWatcherService : Service() {
 
+    // Sử dụng SingleThreadExecutor để xử lý công việc ngầm hoàn toàn độc lập với Main Thread
+    private val executor = Executors.newSingleThreadExecutor()
+
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onCreate() {
-        super.onCreate()
-        Log.d("KillTracker", "Service onCreate")
-        LogStore.add("Service: Dịch vụ giám sát đã khởi động.")
-        startMyForeground()
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Đưa việc tạo Notification và khởi chạy Foreground sang luồng phụ
+        executor.execute {
+            try {
+                startMyForeground()
+            } catch (e: Exception) {
+                Log.e("KillTracker", "Error in background execution: ${e.message}")
+            }
+        }
+        
+        // Trả về START_STICKY ngay lập tức để giải phóng Main Thread cho hệ thống
         return START_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        LogStore.add("CẢNH BÁO: App bị vuốt khỏi đa nhiệm (Recents)!")
+        executor.execute {
+            LogStore.add("CẢNH BÁO: App bị vuốt khỏi đa nhiệm (Recents)!")
+        }
         super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
-        LogStore.add("NGUY HIỂM: Process bị hệ thống Kill!")
+        executor.execute {
+            LogStore.add("NGUY HIỂM: Process bị hệ thống Kill!")
+        }
+        executor.shutdown()
         super.onDestroy()
     }
 
@@ -54,6 +66,7 @@ class AppKillWatcherService : Service() {
                 .setContentTitle("Kill Tracker đang chạy")
                 .setContentText("Đang giám sát tiến trình ngầm...")
                 .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build()
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

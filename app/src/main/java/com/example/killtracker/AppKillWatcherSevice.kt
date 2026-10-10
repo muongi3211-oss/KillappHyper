@@ -12,19 +12,40 @@ import androidx.core.app.NotificationCompat
 
 class AppKillWatcherService : Service() {
 
+    private var isRunning = false
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         LogStore.add("Service: onStartCommand đang chạy ngầm.")
-        Thread {
-            try {
-                startMyForeground()
-            } catch (e: Exception) {
-                LogStore.add("Lỗi Service: ${e.message}")
-            }
-        }.start()
+        
+        if (!isRunning) {
+            isRunning = true
+            Thread {
+                try {
+                    startMyForeground()
+                    startHeartbeat()
+                } catch (e: Exception) {
+                    LogStore.add("Lỗi Service: ${e.message}")
+                }
+            }.start()
+        }
 
         return START_STICKY
+    }
+
+    // Luồng ghi nhận nhịp tim định kỳ 60 giây một lần
+    private fun startHeartbeat() {
+        var count = 1
+        while (isRunning) {
+            try {
+                Thread.sleep(60000) // Nghỉ 60 giây
+                LogStore.add("Heartbeat #$count: Dịch vụ ngầm vẫn đang sống.")
+                count++
+            } catch (e: Exception) {
+                break
+            }
+        }
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -33,6 +54,7 @@ class AppKillWatcherService : Service() {
     }
 
     override fun onDestroy() {
+        isRunning = false
         LogStore.add("NGUY HIỂM: Process bị hệ thống Kill!")
         super.onDestroy()
     }

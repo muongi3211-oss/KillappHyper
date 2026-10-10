@@ -8,44 +8,22 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 
 class AppKillWatcherService : Service() {
 
-    private var isRunning = false
-
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        LogStore.add("Service: onStartCommand đang chạy ngầm.")
-        
-        if (!isRunning) {
-            isRunning = true
-            Thread {
-                try {
-                    startMyForeground()
-                    startHeartbeat()
-                } catch (e: Exception) {
-                    LogStore.add("Lỗi Service: ${e.message}")
-                }
-            }.start()
-        }
-
-        return START_STICKY
+    override fun onCreate() {
+        super.onCreate()
+        Log.d("KillTracker", "Service onCreate")
+        LogStore.add("Service: Dịch vụ giám sát đã khởi động.")
+        startMyForeground()
     }
 
-    // Luồng ghi nhận nhịp tim định kỳ 60 giây một lần
-    private fun startHeartbeat() {
-        var count = 1
-        while (isRunning) {
-            try {
-                Thread.sleep(60000) // Nghỉ 60 giây
-                LogStore.add("Heartbeat #$count: Dịch vụ ngầm vẫn đang sống.")
-                count++
-            } catch (e: Exception) {
-                break
-            }
-        }
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -54,35 +32,37 @@ class AppKillWatcherService : Service() {
     }
 
     override fun onDestroy() {
-        isRunning = false
         LogStore.add("NGUY HIỂM: Process bị hệ thống Kill!")
         super.onDestroy()
     }
 
     private fun startMyForeground() {
-        val channelId = "kill_tracker_channel"
-        val notificationManager = getSystemService(NotificationManager::class.java)
+        try {
+            val channelId = "kill_tracker_channel"
+            val notificationManager = getSystemService(NotificationManager::class.java)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Kill Tracker Monitor",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            notificationManager?.createNotificationChannel(channel)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    channelId,
+                    "Kill Tracker Monitor",
+                    NotificationManager.IMPORTANCE_LOW
+                )
+                notificationManager?.createNotificationChannel(channel)
+            }
+
+            val notification: Notification = NotificationCompat.Builder(this, channelId)
+                .setContentTitle("Kill Tracker đang chạy")
+                .setContentText("Đang giám sát tiến trình ngầm...")
+                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .build()
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE)
+            } else {
+                startForeground(1, notification)
+            }
+        } catch (e: Exception) {
+            Log.e("KillTracker", "Error starting foreground: ${e.message}")
         }
-
-        val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Kill Tracker đang chạy")
-            .setContentText("Đang giám sát tiến trình ngầm...")
-            .setSmallIcon(android.R.drawable.ic_popup_reminder)
-            .build()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE)
-        } else {
-            startForeground(1, notification)
-        }
-        LogStore.add("Foreground: Dịch vụ nền đã khởi chạy thành công.")
     }
 }

@@ -13,8 +13,7 @@
         <service
             android:name=".AppKillWatcherService"
             android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="shortService" />
+            android:exported="false" />
 
         <activity
             android:name=".MainActivity"

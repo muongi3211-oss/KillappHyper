@@ -21,10 +21,10 @@ class AppKillWatcherService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         executor.execute {
             try {
-                LogStore.add(applicationContext, "Service: Đang hoạt động ngầm.")
+                LogStore.add(applicationContext, "Service: Đang hoạt động ngầm ổn định.")
                 startMyForeground()
             } catch (e: Exception) {
-                Log.e("KillTracker", "Error in background execution: ${e.message}")
+                Log.e("KillTracker", "Error: ${e.message}")
             }
         }
         return START_STICKY
@@ -32,14 +32,14 @@ class AppKillWatcherService : Service() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         executor.execute {
-            LogStore.add(applicationContext, "CẢNH BÁO: App bị vuốt khỏi đa nhiệm (Recents)!")
+            LogStore.add(applicationContext, "CẢNH BÁO: App bị vuốt khỏi đa nhiệm!")
         }
         super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
         executor.execute {
-            LogStore.add(applicationContext, "NGUY HIỂM: Process bị hệ thống Kill!")
+            LogStore.add(applicationContext, "NGUY HIỂM: Process bị hệ thống Kill do giải phóng RAM!")
         }
         executor.shutdown()
         super.onDestroy()
@@ -61,7 +61,7 @@ class AppKillWatcherService : Service() {
 
             val notification: Notification = NotificationCompat.Builder(this, channelId)
                 .setContentTitle("Kill Tracker đang chạy")
-                .setContentText("Đang giám sát tiến trình ngầm...")
+                .setContentText("Giám sát vòng đời tiến trình...")
                 .setSmallIcon(android.R.drawable.ic_popup_reminder)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build()
@@ -72,7 +72,7 @@ class AppKillWatcherService : Service() {
                 startForeground(1, notification)
             }
         } catch (e: Exception) {
-            Log.e("KillTracker", "Error starting foreground: ${e.message}")
+            Log.e("KillTracker", "Error foreground: ${e.message}")
         }
     }
 }

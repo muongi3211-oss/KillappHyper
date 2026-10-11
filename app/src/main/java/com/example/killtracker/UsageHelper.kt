@@ -38,7 +38,7 @@ object UsageHelper {
         if (!hasPermission(context)) return listOf("Chưa cấp quyền Truy cập dữ liệu sử dụng!")
 
         try {
-            val usm = context.getSystemService(Context.USAGE_STATS_MANAGER) as? UsageStatsManager
+            val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
                 ?: return list
 
             val endTime = System.currentTimeMillis()

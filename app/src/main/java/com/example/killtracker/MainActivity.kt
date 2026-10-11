@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
     private lateinit var logTextView: TextView
-    private lateinit var permissionButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,23 +22,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         val title = TextView(this).apply {
-            text = "Giám sát ứng dụng toàn hệ thống"
+            text = "Kill Tracker - Giám sát Vòng đời"
             textSize = 18f
             setTypeface(null, android.graphics.Typeface.BOLD)
             setPadding(0, 0, 0, 10)
         }
         layout.addView(title)
 
-        permissionButton = Button(this).apply {
-            text = "Cấp quyền Truy cập dữ liệu sử dụng"
-            setOnClickListener {
-                UsageHelper.requestPermission(this@MainActivity)
-            }
-        }
-        layout.addView(permissionButton)
-
         val refreshButton = Button(this).apply {
-            text = "Làm mới danh sách sự kiện"
+            text = "Làm mới danh sách log"
             setOnClickListener {
                 updateLogs()
             }
@@ -47,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         layout.addView(refreshButton)
 
         val clearButton = Button(this).apply {
-            text = "Xóa lịch sử Log riêng"
+            text = "Xóa toàn bộ lịch sử"
             setOnClickListener {
                 LogStore.clear(this@MainActivity)
                 updateLogs()
@@ -69,40 +60,22 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(layout)
 
-        LogStore.add(applicationContext, "System: Tiến trình MainActivity vừa được mở/khôi phục.")
+        LogStore.add(applicationContext, "System: Mở ứng dụng thành công.")
         startTrackerService()
     }
 
     override fun onResume() {
         super.onResume()
-        updatePermissionStatus()
         updateLogs()
     }
 
-    private fun updatePermissionStatus() {
-        if (UsageHelper.hasPermission(this)) {
-            permissionButton.text = "Đã cấp quyền (Nhấn để xem lại cài đặt)"
-            permissionButton.setBackgroundColor(Color.parseColor("#4CAF50"))
-        } else {
-            permissionButton.text = "Cấp quyền Truy cập dữ liệu sử dụng"
-            permissionButton.setBackgroundColor(Color.parseColor("#FF9800"))
-        }
-    }
-
     private fun updateLogs() {
-        val usageEvents = UsageHelper.getRecentEvents(this)
-        val selfLogs = LogStore.getLogs(this)
-
+        val logs = LogStore.getLogs(this)
         val sb = StringBuilder()
-        sb.append("--- SỰ KIỆN HỆ THỐNG (USAGE STATS) ---\n")
-        for (event in usageEvents) {
-            sb.append(event).append("\n")
+        for (log in logs) {
+            sb.append(log).append("\n\n")
         }
-        sb.append("\n--- LỊCH SỬ KILL TRACKER ---\n")
-        for (log in selfLogs) {
-            sb.append(log).append("\n")
-        }
-        logTextView.text = sb.toString()
+        logTextView.text = if (sb.isEmpty()) "Chưa có sự kiện nào." else sb.toString()
     }
 
     private fun startTrackerService() {
@@ -114,7 +87,7 @@ class MainActivity : AppCompatActivity() {
                 startService(intent)
             }
         } catch (e: Exception) {
-            LogStore.add(applicationContext, "Lỗi kích hoạt Service: ${e.message}")
+            LogStore.add(applicationContext, "Lỗi Service: ${e.message}")
         }
     }
 }

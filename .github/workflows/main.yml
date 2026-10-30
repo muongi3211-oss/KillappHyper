@@ -21,8 +21,8 @@ jobs:
 
     - name: Create Project Structure and Source Code
       run: |
-        # Tạo cấu trúc thư mục chuẩn của Android Project
-        mkdir -p app/src/main/java/com/example/killtracker
+        # Tạo cấu trúc thư mục chuẩn khớp với com/kinh/gmsprotect
+        mkdir -p app/src/main/java/com/kinh/gmsprotect
         mkdir -p app/src/main/res/xml
         mkdir -p app/src/main/res/values
 
@@ -46,7 +46,7 @@ jobs:
                 mavenCentral()
             }
         }
-        rootProject.name = "KillTracker"
+        rootProject.name = "KillappHyper"
         include ':app'
         EOF
 
@@ -66,11 +66,11 @@ jobs:
         }
 
         android {
-            namespace 'com.example.killtracker'
+            namespace 'com.kinh.gmsprotect'
             compileSdk 34
 
             defaultConfig {
-                applicationId "com.example.killtracker"
+                applicationId "com.kinh.gmsprotect"
                 minSdk 24
                 targetSdk 34
                 versionCode 1
@@ -101,7 +101,7 @@ jobs:
             <application
                 android:allowBackup="true"
                 android:icon="@mipmap/ic_launcher"
-                android:label="GmsQuickKiller"
+                android:label="GmsProtect"
                 android:roundIcon="@mipmap/ic_launcher_round"
                 android:supportsRtl="true"
                 android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
@@ -143,8 +143,8 @@ jobs:
         EOF
 
         # 7. Tạo mã nguồn MainActivity.kt
-        cat << 'EOF' > app/src/main/java/com/example/killtracker/MainActivity.kt
-        package com.example.killtracker
+        cat << 'EOF' > app/src/main/java/com/kinh/gmsprotect/MainActivity.kt
+        package com.kinh.gmsprotect
 
         import android.content.Context
         import android.content.Intent
@@ -192,4 +192,72 @@ jobs:
                 }
 
                 layout.addView(edtGamePackage)
-                layout.addView
+                layout.addView(btnSave)
+                layout.addView(btnAccessibility)
+                setContentView(layout)
+            }
+        }
+        EOF
+
+        # 8. Tạo mã nguồn GameDetectService.kt
+        cat << 'EOF' > app/src/main/java/com/kinh/gmsprotect/GameDetectService.kt
+        package com.kinh.gmsprotect
+
+        import android.accessibilityservice.AccessibilityService
+        import android.content.Context
+        import android.content.Intent
+        import android.net.Uri
+        import android.provider.Settings
+        import android.view.accessibility.AccessibilityEvent
+
+        class GameDetectService : AccessibilityService() {
+
+            private var isTriggered = false
+
+            override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+                if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                    val packageName = event.packageName?.toString() ?: return
+
+                    val prefs = getSharedPreferences("GameConfig", Context.MODE_PRIVATE)
+                    val targetGame = prefs.getString("TARGET_GAME", "com.vng.pubgmobile") ?: ""
+
+                    if (packageName == targetGame) {
+                        if (!isTriggered) {
+                            isTriggered = true
+                            openAppInfo("com.miui.powerkeeper")
+                            openAppInfo("com.xiaomi.joyose")
+                        }
+                    } else if (packageName != "com.miui.powerkeeper" && 
+                               packageName != "com.xiaomi.joyose" && 
+                               packageName != this.packageName) {
+                        isTriggered = false
+                    }
+                }
+            }
+
+            private fun openAppInfo(targetPkg: String) {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:$targetPkg")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                try {
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            override fun onInterrupt() {}
+        }
+        EOF
+
+    - name: Build APK with Gradle
+      run: |
+        gradle wrapper --gradle-version 8.5
+        ./gradlew assembleDebug --no-daemon
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: HyperOS-Kill-Tracker-APK
+        path: app/build/outputs/apk/debug/app-debug.apk

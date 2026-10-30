@@ -1,12 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.kinh.gmsprotect">
+
+    <!-- Quyền kiểm tra ứng dụng đang chạy -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    
+    <!-- Quyền chạy dịch vụ nền -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"
-        android:label="Kill Tracker"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Game Protector"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-        
+        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+
+        <!-- MainActivity để cấu hình và cấp quyền -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -16,11 +28,11 @@
             </intent-filter>
         </activity>
 
+        <!-- Service chạy ngầm phát hiện mở game -->
         <service
-            android:name=".AppKillWatcherService"
+            android:name=".AppCheckService"
             android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="shortService" />
-    </application>
+            android:exported="false" />
 
+    </application>
 </manifest>

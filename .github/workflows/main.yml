@@ -96,7 +96,7 @@ jobs:
 
             <application
                 android:allowBackup="true"
-                android:label="GmsProtect"
+                android:label="Killtracker"
                 android:supportsRtl="true"
                 android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
@@ -242,17 +242,35 @@ jobs:
         }
         EOF
 
-    - name: Build APK with Gradle
+    - name: Build Unsigned APK
       run: |
         gradle wrapper --gradle-version 8.5
         ./gradlew assembleDebug --no-daemon
 
-    - name: Create Release and Upload APK
+    - name: Create KeyStore and Sign APK
+      run: |
+        # 1. Tạo file Keystore chữ ký cá nhân
+        keytool -genkeypair -v \
+          -keystore my-release-key.jks \
+          -keyalg RSA -keysize 2048 -validity 10000 \
+          -alias my-alias \
+          -storepass 123456 -keypass 123456 \
+          -dname "CN=HoangKinh, OU=Dev, O=Personal, L=VN, ST=VN, C=VN"
+
+        # 2. Sử dụng apksigner để ký trực tiếp chữ ký cá nhân vào file APK
+        $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
+          --ks my-release-key.jks \
+          --ks-pass pass:123456 \
+          --key-pass pass:123456 \
+          --out Killtracker.apk \
+          app/build/outputs/apk/debug/app-debug.apk
+
+    - name: Create Release and Upload Signed APK
       uses: softprops/action-gh-release@v2
       with:
-        files: app/build/outputs/apk/debug/app-debug.apk
+        files: Killtracker.apk
         tag_name: "v1.0.${{ github.run_number }}"
-        name: "Release v1.0.${{ github.run_number }}"
-        body: "Tự động phát hành bản APK mới nhất cho HyperOS."
+        name: "Killtracker v1.0.${{ github.run_number }}"
+        body: "Bản build chính thức Killtracker.apk đã được ký chữ ký cá nhân."
         draft: false
         prerelease: false

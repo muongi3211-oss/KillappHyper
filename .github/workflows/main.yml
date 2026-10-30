@@ -23,7 +23,8 @@ jobs:
 
     - name: Create Project Structure and Source Code
       run: |
-        mkdir -p app/src/main/java/com/kinh/gmsprotect
+        # Đổi package thành com/kinh/killtracker để không đụng độ gmsprotect
+        mkdir -p app/src/main/java/com/kinh/killtracker
         mkdir -p app/src/main/res/xml
         mkdir -p app/src/main/res/values
 
@@ -63,11 +64,11 @@ jobs:
         }
 
         android {
-            namespace 'com.kinh.gmsprotect'
+            namespace 'com.kinh.killtracker'
             compileSdk 34
 
             defaultConfig {
-                applicationId "com.kinh.gmsprotect"
+                applicationId "com.kinh.killtracker"
                 minSdk 24
                 targetSdk 34
                 versionCode 1
@@ -135,8 +136,8 @@ jobs:
             android:notificationTimeout="100" />
         EOF
 
-        cat << 'EOF' > app/src/main/java/com/kinh/gmsprotect/MainActivity.kt
-        package com.kinh.gmsprotect
+        cat << 'EOF' > app/src/main/java/com/kinh/killtracker/MainActivity.kt
+        package com.kinh.killtracker
 
         import android.content.Context
         import android.content.Intent
@@ -191,8 +192,8 @@ jobs:
         }
         EOF
 
-        cat << 'EOF' > app/src/main/java/com/kinh/gmsprotect/GameDetectService.kt
-        package com.kinh.gmsprotect
+        cat << 'EOF' > app/src/main/java/com/kinh/killtracker/GameDetectService.kt
+        package com.kinh.killtracker
 
         import android.accessibilityservice.AccessibilityService
         import android.content.Context
@@ -249,7 +250,6 @@ jobs:
 
     - name: Create KeyStore and Sign APK
       run: |
-        # 1. Tạo file Keystore chữ ký cá nhân
         keytool -genkeypair -v \
           -keystore my-release-key.jks \
           -keyalg RSA -keysize 2048 -validity 10000 \
@@ -257,7 +257,6 @@ jobs:
           -storepass 123456 -keypass 123456 \
           -dname "CN=HoangKinh, OU=Dev, O=Personal, L=VN, ST=VN, C=VN"
 
-        # 2. Sử dụng apksigner để ký trực tiếp chữ ký cá nhân vào file APK
         $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
           --ks my-release-key.jks \
           --ks-pass pass:123456 \
@@ -271,6 +270,6 @@ jobs:
         files: Killtracker.apk
         tag_name: "v1.0.${{ github.run_number }}"
         name: "Killtracker v1.0.${{ github.run_number }}"
-        body: "Bản build chính thức Killtracker.apk đã được ký chữ ký cá nhân."
+        body: "Bản build Killtracker.apk đã đổi sang package com.kinh.killtracker để tránh xung đột."
         draft: false
         prerelease: false

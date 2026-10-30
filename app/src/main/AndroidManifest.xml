@@ -1,24 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.kinh.gmsprotect">
-
-    <!-- Quyền kiểm tra ứng dụng đang chạy -->
-    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
-        tools:ignore="ProtectedPermissions" />
-    
-    <!-- Quyền chạy dịch vụ nền -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Game Protector"
+        android:label="GmsQuickKiller"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
-        <!-- MainActivity để cấu hình và cấp quyền -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -28,11 +18,18 @@
             </intent-filter>
         </activity>
 
-        <!-- Service chạy ngầm phát hiện mở game -->
+        <!-- Khai báo Accessibility Service -->
         <service
-            android:name=".AppCheckService"
-            android:enabled="true"
-            android:exported="false" />
+            android:name=".GameDetectService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
 
     </application>
 </manifest>

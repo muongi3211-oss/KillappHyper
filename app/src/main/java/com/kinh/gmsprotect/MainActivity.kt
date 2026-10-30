@@ -1,50 +1,53 @@
-package com.kinh.gmsprotect
+package com.kinh.appkiller
 
-import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
-        val btnPermission = findViewById<Button>(R.id.btnPermission)
-        val btnStartService = findViewById<Button>(R.id.btnStartService)
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(50, 50, 50, 50)
+        }
 
-        btnPermission.setOnClickListener {
-            if (!hasUsageStatsPermission()) {
-                // Mở cài đặt quyền truy cập sử dụng
-                startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-            } else {
-                Toast.makeText(this, "Đã được cấp quyền truy cập!", Toast.LENGTH_SHORT).show()
+        val edtGamePackage = EditText(this).apply {
+            hint = "Nhập Package Game (vd: com.vng.pubgmobile)"
+            val savedPkg = getSharedPreferences("GameConfig", Context.MODE_PRIVATE)
+                .getString("TARGET_GAME", "com.vng.pubgmobile")
+            setText(savedPkg)
+        }
+
+        val btnSave = Button(this).apply {
+            text = "Lưu Package Game"
+            setOnClickListener {
+                val pkg = edtGamePackage.text.toString().trim()
+                getSharedPreferences("GameConfig", Context.MODE_PRIVATE)
+                    .edit()
+                    .putString("TARGET_GAME", pkg)
+                    .apply()
+                Toast.makeText(this@MainActivity, "Đã lưu!", Toast.LENGTH_SHORT).show()
             }
         }
 
-        btnStartService.setOnClickListener {
-            if (hasUsageStatsPermission()) {
-                val serviceIntent = Intent(this, AppCheckService::class.java)
-                startForegroundService(serviceIntent)
-                Toast.makeText(this, "Đã khởi động dịch vụ bảo vệ nền!", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Vui lòng cấp quyền Truy cập sử dụng trước!", Toast.LENGTH_LONG).show()
+        val btnAccessibility = Button(this).apply {
+            text = "Bật quyền Hỗ trợ tiếp cận (Accessibility)"
+            setOnClickListener {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
         }
-    }
 
-    private fun hasUsageStatsPermission(): Boolean {
-        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = appOps.checkOpNoThrow(
-            AppOpsManager.OPSTR_GET_USAGE_STATS,
-            android.os.Process.myUid(),
-            packageName
-        )
-        return mode == AppOpsManager.MODE_ALLOWED
+        layout.addView(edtGamePackage)
+        layout.addView(btnSave)
+        layout.addView(btnAccessibility)
+        setContentView(layout)
     }
 }

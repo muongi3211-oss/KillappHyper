@@ -1,11 +1,10 @@
-package com.kinh.appkiller
+package com.kinh.killtracker
 
-import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
-import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -19,35 +18,37 @@ class MainActivity : AppCompatActivity() {
             setPadding(50, 50, 50, 50)
         }
 
-        val edtGamePackage = EditText(this).apply {
-            hint = "Nhập Package Game (vd: com.vng.pubgmobile)"
-            val savedPkg = getSharedPreferences("GameConfig", Context.MODE_PRIVATE)
-                .getString("TARGET_GAME", "com.vng.pubgmobile")
-            setText(savedPkg)
-        }
-
-        val btnSave = Button(this).apply {
-            text = "Lưu Package Game"
+        val btnPermission = Button(this).apply {
+            text = "1. Cấp quyền Hiển thị trên ứng dụng khác"
             setOnClickListener {
-                val pkg = edtGamePackage.text.toString().trim()
-                getSharedPreferences("GameConfig", Context.MODE_PRIVATE)
-                    .edit()
-                    .putString("TARGET_GAME", pkg)
-                    .apply()
-                Toast.makeText(this@MainActivity, "Đã lưu!", Toast.LENGTH_SHORT).show()
+                if (!Settings.canDrawOverlays(this@MainActivity)) {
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:$packageName")
+                    )
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this@MainActivity, "Đã có quyền!", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
-        val btnAccessibility = Button(this).apply {
-            text = "Bật quyền Hỗ trợ tiếp cận (Accessibility)"
+        val btnStart = Button(this).apply {
+            text = "2. Bật cửa sổ nổi"
             setOnClickListener {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                if (Settings.canDrawOverlays(this@MainActivity)) {
+                    val intent = Intent(this@MainActivity, FloatingService::class.java)
+                    startForegroundService(intent)
+                    Toast.makeText(this@MainActivity, "Đã bật cửa sổ nổi!", Toast.LENGTH_SHORT).show()
+                    finish() // Đóng app chính để vào game
+                } else {
+                    Toast.makeText(this@MainActivity, "Chưa cấp quyền hiển thị nổi!", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
-        layout.addView(edtGamePackage)
-        layout.addView(btnSave)
-        layout.addView(btnAccessibility)
+        layout.addView(btnPermission)
+        layout.addView(btnStart)
         setContentView(layout)
     }
 }

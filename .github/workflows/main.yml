@@ -1,4 +1,4 @@
-name: Build and Release Minimal Killtracker APK
+name: Build and Release Killtracker APK
 
 on:
   push:
@@ -21,8 +21,13 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Create Project Structure and Minimal Code
+    - name: Clean Old Source and Create Clean Structure
       run: |
+        # 1. Xóa sạch các thư mục mã nguồn cũ để tránh lỗi Redeclaration
+        rm -rf app/src/main/java/com/kinh/*
+        rm -rf app/src/main/res/xml/*
+
+        # 2. Tạo cấu trúc thư mục mới chuẩn cho killtracker
         mkdir -p app/src/main/java/com/kinh/killtracker
         mkdir -p app/src/main/res/values
 
@@ -89,10 +94,12 @@ jobs:
         }
         EOF
 
-        # AndroidManifest đơn giản hóa tuyệt đối
+        # 3. Tạo AndroidManifest.xml tích hợp quyền cửa sổ nổi và FloatingService
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+            <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
             <application
                 android:allowBackup="true"
@@ -109,32 +116,82 @@ jobs:
                     </intent-filter>
                 </activity>
 
+                <service
+                    android:name=".FloatingService"
+                    android:exported="false" />
+
             </application>
         </manifest>
         EOF
 
-        # Mã nguồn MainActivity siêu ngắn: Ấn vào là bật 2 mục Cài đặt và tự thoát
-        cat << 'EOF' > app/src/main/java/com/kinh/killtracker/MainActivity.kt
+        # 4. Tạo FloatingService.kt (Hiển thị cửa sổ nổi chứa nút mở cài đặt Pin & Joyose)
+        cat << 'EOF' > app/src/main/java/com/kinh/killtracker/FloatingService.kt
         package com.kinh.killtracker
 
+        import android.app.Service
         import android.content.Intent
+        import android.graphics.PixelFormat
         import android.net.Uri
-        import android.os.Bundle
+        import android.os.Build
+        import android.os.IBinder
         import android.provider.Settings
-        import androidx.appcompat.app.AppCompatActivity
+        import android.view.Gravity
+        import android.view.View
+        import android.view.WindowManager
+        import android.widget.Button
+        import android.widget.LinearLayout
 
-        class MainActivity : AppCompatActivity() {
-            override fun onCreate(savedInstanceState: Bundle?) {
-                super.onCreate(savedInstanceState)
+        class FloatingService : Service() {
 
-                // 1. Mở Cài đặt Battery & Performance (PowerKeeper)
-                openAppInfo("com.miui.powerkeeper")
+            private var windowManager: WindowManager? = null
+            private var floatingView: View? = null
 
-                // 2. Mở Cài đặt Joyose
-                openAppInfo("com.xiaomi.joyose")
+            override fun onBind(intent: Intent?): IBinder? = null
 
-                // Đóng ứng dụng ngay lập tức
-                finish()
+            override fun onCreate() {
+                super.onCreate()
+                windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+
+                val layoutParamsType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                } else {
+                    WindowManager.LayoutParams.TYPE_PHONE
+                }
+
+                val params = WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    layoutParamsType,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                    PixelFormat.TRANSLUCENT
+                ).apply {
+                    gravity = Gravity.TOP or Gravity.START
+                    x = 100
+                    y = 200
+                }
+
+                val context = this
+                val button = Button(context).apply {
+                    text = "⚙️ Mở Cài đặt Pin & Joyose"
+                    setOnClickListener {
+                        openAppInfo("com.miui.powerkeeper")
+                        openAppInfo("com.xiaomi.joyose")
+                    }
+                }
+
+                val container = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(25, 25, 25, 25)
+                    setBackgroundColor(0xCC222222.toInt())
+                    addView(button)
+                }
+
+                floatingView = container
+                try {
+                    windowManager?.addView(floatingView, params)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
 
             private fun openAppInfo(packageName: String) {
@@ -147,6 +204,79 @@ jobs:
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
+            }
+
+            override fun onDestroy() {
+                super.onDestroy()
+                if (floatingView != null) {
+                    try {
+                        windowManager?.removeView(floatingView)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+        EOF
+
+        # 5. Tạo MainActivity.kt (Xin quyền cửa sổ nổi và khởi chạy FloatingService)
+        cat << 'EOF' > app/src/main/java/com/kinh/killtracker/MainActivity.kt
+        package com.kinh.killtracker
+
+        import android.content.Intent
+        import android.net.Uri
+        import android.os.Bundle
+        import android.provider.Settings
+        import android.widget.Button
+        import android.widget.LinearLayout
+        import android.widget.Toast
+        import androidx.appcompat.app.AppCompatActivity
+
+        class MainActivity : AppCompatActivity() {
+            override fun onCreate(savedInstanceState: Bundle?) {
+                super.onCreate(savedInstanceState)
+
+                val layout = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(50, 50, 50, 50)
+                }
+
+                val btnPermission = Button(this).apply {
+                    text = "1. Cấp quyền Hiển thị trên ứng dụng khác"
+                    setOnClickListener {
+                        if (!Settings.canDrawOverlays(this@MainActivity)) {
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:$packageName")
+                            )
+                            startActivity(intent)
+                        } else {
+                            Toast.makeText(this@MainActivity, "Đã có quyền hiển thị nổi!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+
+                val btnStart = Button(this).apply {
+                    text = "2. Bật cửa sổ nổi & Vào Game"
+                    setOnClickListener {
+                        if (Settings.canDrawOverlays(this@MainActivity)) {
+                            val intent = Intent(this@MainActivity, FloatingService::class.java)
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                startForegroundService(intent)
+                            } else {
+                                startService(intent)
+                            }
+                            Toast.makeText(this@MainActivity, "Đã bật cửa sổ nổi!", Toast.LENGTH_SHORT).show()
+                            finish()
+                        } else {
+                            Toast.makeText(this@MainActivity, "Vui lòng cấp quyền ở bước 1 trước!", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+
+                layout.addView(btnPermission)
+                layout.addView(btnStart)
+                setContentView(layout)
             }
         }
         EOF
@@ -178,6 +308,6 @@ jobs:
         files: Killtracker.apk
         tag_name: "v1.0.${{ github.run_number }}"
         name: "Killtracker v1.0.${{ github.run_number }}"
-        body: "Bản APK siêu gọn: Chạm vào icon để mở nhanh cài đặt PowerKeeper & Joyose."
+        body: "Bản build Killtracker.apk tích hợp tính năng cửa sổ nổi (Floating Window)."
         draft: false
         prerelease: false

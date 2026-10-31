@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Cấp quyền hiển thị cửa sổ nổi trên ứng dụng khác (để hiện nút bấm trong game) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -18,18 +21,10 @@
             </intent-filter>
         </activity>
 
-        <!-- Khai báo Accessibility Service -->
+        <!-- Khai báo Dịch vụ cửa sổ nổi thay thế cho tính năng theo dõi nền cũ -->
         <service
-            android:name=".GameDetectService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
+            android:name=".FloatingService"
+            android:exported="false" />
 
     </application>
 </manifest>

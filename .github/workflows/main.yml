@@ -23,11 +23,9 @@ jobs:
 
     - name: Clean Old Source and Create Clean Structure
       run: |
-        # 1. Xóa sạch các thư mục mã nguồn cũ để tránh lỗi Redeclaration
         rm -rf app/src/main/java/com/kinh/*
         rm -rf app/src/main/res/xml/*
 
-        # 2. Tạo cấu trúc thư mục mới chuẩn cho killtracker
         mkdir -p app/src/main/java/com/kinh/killtracker
         mkdir -p app/src/main/res/values
 
@@ -94,7 +92,7 @@ jobs:
         }
         EOF
 
-        # 3. Tạo AndroidManifest.xml tích hợp quyền cửa sổ nổi và FloatingService
+        # 1. AndroidManifest.xml
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -124,7 +122,7 @@ jobs:
         </manifest>
         EOF
 
-        # 4. Tạo FloatingService.kt (Hiển thị cửa sổ nổi chứa nút mở cài đặt Pin & Joyose)
+        # 2. FloatingService.kt với Panel hiển thị 2 nút riêng biệt cho PowerKeeper và Joyose
         cat << 'EOF' > app/src/main/java/com/kinh/killtracker/FloatingService.kt
         package com.kinh.killtracker
 
@@ -140,6 +138,7 @@ jobs:
         import android.view.WindowManager
         import android.widget.Button
         import android.widget.LinearLayout
+        import android.widget.TextView
 
         class FloatingService : Service() {
 
@@ -171,20 +170,46 @@ jobs:
                 }
 
                 val context = this
-                val button = Button(context).apply {
-                    text = "⚙️ Mở Cài đặt Pin & Joyose"
-                    setOnClickListener {
-                        openAppInfo("com.miui.powerkeeper")
-                        openAppInfo("com.xiaomi.joyose")
-                    }
-                }
-
                 val container = LinearLayout(context).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(25, 25, 25, 25)
-                    setBackgroundColor(0xCC222222.toInt())
-                    addView(button)
+                    setBackgroundColor(0xDD111111.toInt()) // Nền đen đậm dễ nhìn trong game
                 }
+
+                // Tiêu đề Panel
+                val titleText = TextView(context).apply {
+                    text = "⚡ Killtracker Panel"
+                    setTextColor(0xFFFFFFFF.toInt())
+                    setPadding(0, 0, 0, 10)
+                }
+                container.addView(titleText)
+
+                // Nút mở PowerKeeper (Battery)
+                val btnPowerKeeper = Button(context).apply {
+                    text = "🔋 Mở PowerKeeper (Pin)"
+                    setOnClickListener {
+                        openAppInfo("com.miui.powerkeeper")
+                    }
+                }
+                container.addView(btnPowerKeeper)
+
+                // Nút mở Joyose
+                val btnJoyose = Button(context).apply {
+                    text = "⚡ Mở Joyose"
+                    setOnClickListener {
+                        openAppInfo("com.xiaomi.joyose")
+                    }
+                }
+                container.addView(btnJoyose)
+
+                // Nút tắt cửa sổ nổi
+                val btnClose = Button(context).apply {
+                    text = "❌ Ẩn cửa sổ"
+                    setOnClickListener {
+                        stopSelf()
+                    }
+                }
+                container.addView(btnClose)
 
                 floatingView = container
                 try {
@@ -219,7 +244,7 @@ jobs:
         }
         EOF
 
-        # 5. Tạo MainActivity.kt (Xin quyền cửa sổ nổi và khởi chạy FloatingService)
+        # 3. MainActivity.kt
         cat << 'EOF' > app/src/main/java/com/kinh/killtracker/MainActivity.kt
         package com.kinh.killtracker
 
@@ -266,7 +291,7 @@ jobs:
                             } else {
                                 startService(intent)
                             }
-                            Toast.makeText(this@MainActivity, "Đã bật cửa sổ nổi!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, "Đã hiển thị bảng điều khiển nổi!", Toast.LENGTH_SHORT).show()
                             finish()
                         } else {
                             Toast.makeText(this@MainActivity, "Vui lòng cấp quyền ở bước 1 trước!", Toast.LENGTH_LONG).show()
@@ -308,6 +333,6 @@ jobs:
         files: Killtracker.apk
         tag_name: "v1.0.${{ github.run_number }}"
         name: "Killtracker v1.0.${{ github.run_number }}"
-        body: "Bản build Killtracker.apk tích hợp tính năng cửa sổ nổi (Floating Window)."
+        body: "Bản build tích hợp bảng điều khiển nổi với 2 nút riêng biệt cho PowerKeeper và Joyose."
         draft: false
         prerelease: false
